@@ -491,11 +491,14 @@ export const defaultLayer = layer.pipe(Layer.provide(NodeFileSystem.layer), Laye
 
 import { lazy } from "@/util/lazy"
 
-const rt = lazy(() => {
-  // Dynamic import to avoid circular dep: cross-spawn-spawner → run-service → Instance → project → cross-spawn-spawner
-  const { makeRuntime } = require("@/effect/run-service") as typeof import("@/effect/run-service")
+const rt = lazy(async () => {
+  // Dynamic import to avoid circular dep: cross-spawn-spawner -> run-service -> Instance -> project -> cross-spawn-spawner
+  const { makeRuntime } = await import("@/effect/run-service")
   return makeRuntime(ChildProcessSpawner, defaultLayer)
 })
 
-export const runPromiseExit: ReturnType<typeof rt>["runPromiseExit"] = (...args) => rt().runPromiseExit(...(args as [any]))
-export const runPromise: ReturnType<typeof rt>["runPromise"] = (...args) => rt().runPromise(...(args as [any]))
+export const runPromiseExit = (...args: Parameters<Awaited<ReturnType<typeof rt>>["runPromiseExit"]>) =>
+  rt().then((runtime) => runtime.runPromiseExit(...args))
+
+export const runPromise = (...args: Parameters<Awaited<ReturnType<typeof rt>>["runPromise"]>) =>
+  rt().then((runtime) => runtime.runPromise(...args))
